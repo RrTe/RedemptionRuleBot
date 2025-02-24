@@ -41,7 +41,7 @@ A Discord bot that extracts and searches specific sections within a PDF document
    DISCORD_TOKEN=your_discord_bot_token_here
    ```
    
-   Alternatively, you can set the environment variable directly in your system.
+   Alternatively, you can set the environment variable directly in your system or import it from a config.py file.
 
 5. Prepare the PDF Document:
 
