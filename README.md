@@ -36,7 +36,7 @@ A Discord bot that extracts and searches specific sections within a PDF document
 
    ```bash
    DISCORD_TOKEN=your_discord_bot_token_here
-
+   
    Alternatively, you can set the environment variable directly in your system.
 
 5. Prepare the PDF Document:
@@ -45,7 +45,7 @@ A Discord bot that extracts and searches specific sections within a PDF document
 
    ```bash
    mkdir data
-
+   
    Then, move your PDF file into this directory.
 
 ## Usage
