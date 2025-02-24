@@ -4,6 +4,7 @@ import fitz  # PyMuPDF
 import logging
 import os
 from discord.ui import Button, View
+from config import TOKEN
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
