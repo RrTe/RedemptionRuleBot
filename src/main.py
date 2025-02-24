@@ -149,8 +149,8 @@ async def search_pdf(ctx,
         current_page = 0
 
         # Create buttons
-        prev_button = Button(label="⬅️", style=discord.ButtonStyle.primary)
-        next_button = Button(label="➡️", style=discord.ButtonStyle.primary)
+        prev_button = Button(label="◀️", style=discord.ButtonStyle.primary)
+        next_button = Button(label="▶️", style=discord.ButtonStyle.primary)
 
         # Define button callbacks
         async def prev_callback(interaction: discord.Interaction):
