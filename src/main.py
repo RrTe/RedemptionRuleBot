@@ -187,9 +187,11 @@ async def search_pdf(ctx,
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
 if not token:
-    logger.error(
-        "No Discord token found. Please set the DISCORD_TOKEN environment variable."
-    )
-    exit(1)
+    token = TOKEN
+    if not token:
+        logger.error(
+            "No Discord token found. Please set the DISCORD_TOKEN environment variable."
+        )
+        exit(1)
 
 bot.run(token)
