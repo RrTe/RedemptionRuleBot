@@ -65,7 +65,7 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
                                 if rounded_font_size == 14:  # Assuming 14 is the subheading font size
                                     text = f"**{text}**"  # Apply bold formatting
 
-                                logger.info(f"Count: '{count}' Line text before is '{line_text}' + Current Bullet text is '{current_bullet_text}''")
+                                #logger.info(f"Count: '{count}' Line text before is '{line_text}' + Current Bullet text is '{current_bullet_text}''")
                                 if current_bullet_text:
                                     if text:
                                         combined_text = f"{current_bullet_text} {text}"
@@ -73,7 +73,7 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
                                         current_bullet_text = None
                                 else:
                                     line_text += text + " "
-                                logger.info(f"Count: '{count}' Line text after is '{line_text}'")
+                                #logger.info(f"Count: '{count}' Line text after is '{line_text}'")
                             count += 1
 
                         if line_text:
@@ -122,7 +122,7 @@ async def search_pdf(ctx,
     """Search for a keyword in both regular sections and glossary"""
     pdf_path = "data/REG_PDF_9.0.0.pdf"
 
-    logger.info(f"Searching for '{keyword}' in sections and glossary")
+    #logger.info(f"Searching for '{keyword}' in sections and glossary")
     section_text, is_glossary_result = extract_section_with_specific_format(
         pdf_path, keyword, section_size, glossary_size, heading_font)
 
