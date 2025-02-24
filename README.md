@@ -19,16 +19,19 @@ A Discord bot that extracts and searches specific sections within a PDF document
 
    ```bash
    git clone https://github.com/yourusername/discord-pdf-search-bot.git
+   ```
 
 2. Navigate to the project directory:
 
    ```bash
    cd discord-pdf-search-bot
+   ```
 
 3. Install the required dependencies:
 
    ```bash
    pip install -r requirements.txt
+   ```
 
 4. Set Up Environment Variables:
 
@@ -36,6 +39,7 @@ A Discord bot that extracts and searches specific sections within a PDF document
 
    ```bash
    DISCORD_TOKEN=your_discord_bot_token_here
+   ```
    
    Alternatively, you can set the environment variable directly in your system.
 
@@ -45,6 +49,7 @@ A Discord bot that extracts and searches specific sections within a PDF document
 
    ```bash
    mkdir data
+   ```
    
    Then, move your PDF file into this directory.
 
@@ -54,16 +59,19 @@ To start the bot, run:
 
    ```bash
    python bot.py
+   ```
 
 Once the bot is running, you can use the following commands in your Discord server:
 
    ```bash
    !search <keyword>: Searches for the specified keyword in the PDF and displays the relevant section or glossary entry.
+   ```
 
    Example:
 
    ```bash
    !search installation
+   ```
 
    This command will search for the term "installation" in the PDF and display the corresponding section or glossary entry in a paginated embed.
 
@@ -71,6 +79,7 @@ Once the bot is running, you can use the following commands in your Discord serv
 
    ```bash
    !invite: Provides the invite link to add the bot to other servers.
+   ```
 
 ## Code Overview
 
