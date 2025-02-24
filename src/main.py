@@ -119,7 +119,7 @@ async def search_pdf(ctx,
                      glossary_size: int = 14,
                      heading_font: str = "Arial"):
     """Search for a keyword in both regular sections and glossary"""
-    pdf_path = "REG_PDF_9.0.0.pdf"
+    pdf_path = "data/REG_PDF_9.0.0.pdf"
 
     logger.info(f"Searching for '{keyword}' in sections and glossary")
     section_text, is_glossary_result = extract_section_with_specific_format(
