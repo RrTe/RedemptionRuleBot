@@ -70,10 +70,10 @@ Once the bot is running, you can use the following commands in your Discord serv
    Example:
 
    ```bash
-   !search installation
+   !search Negate
    ```
 
-   This command will search for the term "installation" in the PDF and display the corresponding section or glossary entry in a paginated embed.
+   This command will search for the Negate section in the PDF and display the corresponding section or glossary entry in a paginated embed.
 
 ## Bot Commands
 
