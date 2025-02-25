@@ -66,6 +66,8 @@ def extract_section_text(pdf_path, start_page, end_page=None):
 @bot.event
 async def on_ready():
     logger.info(f'Bot is ready as {bot.user}')
+    await bot.tree.sync()  # Sync commands automatically
+    logger.info("Commands synced with Discord")
     logger.info(f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands')
 
     # Extract sections and store them globally
