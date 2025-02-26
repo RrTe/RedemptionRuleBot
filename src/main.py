@@ -132,7 +132,11 @@ async def on_ready():
     """ Load section titles on bot startup """
     global section_titles
     logger.info(f'Bot is ready as {bot.user}')
-    logger.info(f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands')
+    
+    # Generate the bot's invite link dynamically
+    permissions = discord.Permissions(send_messages=True, embed_links=True, attach_files=True, use_application_commands=True)
+    invite_link = discord.utils.oauth_url(bot.user.id, permissions=permissions)
+    logger.info(f'Invite link: {invite_link}')
 
     # Extract section titles from the document
     section_titles = extract_sections(pdf_path, heading_size1=30, heading_size2=14, heading_font="Arial")
@@ -177,8 +181,8 @@ async def lookup(interaction: discord.Interaction, section: str):
         return
 
     paginated = PaginatedText(section_text)
-
-    embed = discord.Embed(title=f"Section: {section}", color=discord.Color.blue())
+    
+    embed = discord.Embed(title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}", color=discord.Color.green())
     embed.description = paginated.pages[0]
     embed.set_footer(text=f"Page 1/{paginated.total_pages}")
 
