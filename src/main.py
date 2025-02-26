@@ -168,7 +168,7 @@ async def section_autocomplete(interaction: discord.Interaction, current: str):
 @app_commands.autocomplete(section=section_autocomplete)
 async def extract(interaction: discord.Interaction, section: str):
     """ Extracts and paginates the chosen section """
-    section_text = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
+    section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
 
     if not section_text:
         await interaction.response.send_message(f"'{section}' not found in the document.", ephemeral=True)
@@ -225,8 +225,7 @@ async def search_pdf(ctx,
     pdf_path = "data/REG_PDF_9.0.0.pdf"
 
     #logger.info(f"Searching for '{keyword}' in sections and glossary")
-    section_text, is_glossary_result = extract_section_with_specific_format(
-        pdf_path, keyword, section_size, glossary_size, heading_font)
+    section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, keyword, section_size, glossary_size, heading_font)
 
     if not section_text:
         await ctx.send(f"'{keyword}' not found in sections or glossary.")
