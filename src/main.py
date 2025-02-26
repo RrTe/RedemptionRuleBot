@@ -76,14 +76,16 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
                             font_size = span["size"]
                             font_name = span["font"]
                             rounded_font_size = round(font_size)
+                            
+                            #logger.info(f"Text: {main_heading} and {text}")
 
                             # Check if we've found the main heading and match the desired font and size
-                            if text == main_heading and rounded_font_size == heading_size1 and heading_font in font_name:
+                            if text == main_heading and rounded_font_size == heading_size and heading_font in font_name:
                                 found_main_heading = True
                                 section_text.append(text)
                                 continue
 
-                            if found_main_heading and rounded_font_size == heading_size1 and heading_font in font_name:
+                            if found_main_heading and rounded_font_size == heading_size and heading_font in font_name:
                                 return "\n".join(section_text)
 
                             if found_main_heading:
@@ -163,10 +165,10 @@ async def section_autocomplete(interaction: discord.Interaction, current: str):
     return [app_commands.Choice(name=title, value=title) for title in filtered_titles]
 
 
-@bot.tree.command(name="extract", description="Extract a section from the PDF")
+@bot.tree.command(name="lookup", description="Lookup a section from the PDF")
 @app_commands.describe(section="Select a section from the document")
 @app_commands.autocomplete(section=section_autocomplete)
-async def extract(interaction: discord.Interaction, section: str):
+async def lookup(interaction: discord.Interaction, section: str):
     """ Extracts and paginates the chosen section """
     section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
 
