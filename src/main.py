@@ -1,9 +1,10 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
+from discord.ui import Button, View
 import fitz  # PyMuPDF
 import logging
 import os
-from discord.ui import Button, View
 from config import TOKEN
 
 # Configure logging
@@ -25,6 +26,38 @@ class PaginatedText:
             text[i:i + per_page] for i in range(0, len(text), per_page)
         ]
         self.total_pages = len(self.pages)
+
+
+def extract_all_headings(pdf_path, heading_size1, heading_size2, heading_font):
+    try:
+        doc = fitz.open(pdf_path)
+        headings = []
+
+        def process_section(heading_size):
+            found_headings = []
+            for page in doc:
+                blocks = page.get_text("dict")["blocks"]
+                for block in blocks:
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            text = span["text"].strip()
+                            font_size = round(span["size"])  # Round the font size to avoid small variations
+                            font_name = span["font"]
+
+                            if (font_size == heading_size1 or font_size == heading_size2) and heading_font in font_name:
+                                found_headings.append(text)
+
+            return found_headings
+
+        # Gather all headings from the document
+        headings.extend(process_section(heading_size1))
+        headings.extend(process_section(heading_size2))
+
+        return headings
+
+    except Exception as e:
+        logger.error(f"Error extracting headings from PDF: {str(e)}")
+        return []
 
 
 def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, heading_size2, heading_font):
@@ -111,6 +144,55 @@ async def invite(interaction: discord.Interaction):
     invite_link = f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands"
     await interaction.response.send_message(
         f"Invite me to your server using this link:\n{invite_link}")
+
+
+from discord import app_commands
+
+async def lookup_autocomplete(interaction: discord.Interaction, current: str):
+    """Provide autocompletion for section headers in the PDF"""
+    # Path to the PDF
+    pdf_path = "data/REG_PDF_9.0.0.pdf"
+
+    # The font size for headings (customize as per the document structure)
+    heading_size1 = 30  # Example heading size 1
+    heading_size2 = 14  # Example heading size 2
+    heading_font = "Arial"  # Example heading font
+
+    # Extract all headings from the PDF
+    all_headings = extract_all_headings(pdf_path, heading_size1, heading_size2, heading_font)
+
+    # Filter headings based on the current input (case-insensitive matching)
+    filtered_headings = [heading for heading in all_headings if current.lower() in heading.lower()]
+
+    # Limit to 25 results
+    suggestions = [app_commands.Choice(name=heading, value=heading) for heading in filtered_headings[:25]]
+
+    # Return suggestions for autocompletion
+    await interaction.response.send_choices(choices=suggestions)
+
+
+@bot.tree.command(name="lookup", description="Search for section headers in the PDF")
+@app_commands.describe(query="Section header or keyword to search for")
+async def lookup(interaction: discord.Interaction, query: str):
+    """Search for a section header in the document"""
+    pdf_path = "data/REG_PDF_9.0.0.pdf"
+
+    # Extract all headings from the PDF
+    heading_size1 = 30  # Example heading size 1
+    heading_size2 = 14  # Example heading size 2
+    heading_font = "Arial"  # Example heading font
+    all_headings = extract_all_headings(pdf_path, heading_size1, heading_size2, heading_font)
+
+    # Find sections matching the query (case-insensitive)
+    matching_headings = [heading for heading in all_headings if query.lower() in heading.lower()]
+
+    if matching_headings:
+        # Create an embed to display the matching headings
+        embed = discord.Embed(title="Matching Section Headers", color=discord.Color.blue())
+        embed.description = "\n".join(matching_headings[:25])  # Display only top 25 matches
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message(f"No section headers found for '{query}'.")
 
 
 @bot.command(name='search')
