@@ -137,6 +137,13 @@ async def on_ready():
     logger.info(
         f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands'
     )
+    
+    # Sync all app commands (this will auto-sync slash commands)
+    await bot.tree.sync()
+    
+    # Log how many commands have been synced
+    synced_commands = len(bot.tree.commands)
+    logger.info(f'{synced_commands} commands have been synced with Discord.')
 
 
 @bot.tree.command(name="invite", description="Get the bot's invite link")
