@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents)
 
 
 class PaginatedText:
@@ -138,12 +138,12 @@ async def on_ready():
         f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands'
     )
     
-    # Sync all app commands (this will auto-sync slash commands)
-    await bot.tree.sync()
-    
-    # Log how many commands have been synced
-    synced_commands = len(bot.tree.commands)
-    logger.info(f'{synced_commands} commands have been synced with Discord.')
+    # Sync tree commands
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f"Synced {len(synced)} commands.")
+    except Exception as e:
+        logger.error(f"Error syncing commands: {str(e)}")
 
 
 @bot.tree.command(name="invite", description="Get the bot's invite link")
