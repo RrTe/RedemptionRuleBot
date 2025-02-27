@@ -213,23 +213,27 @@ async def section_autocomplete(interaction: discord.Interaction, current: str):
 
 
 @bot.tree.command(name="lookup", description="Lookup a section from the PDF")
+#@app_commands.describe(section="Select a section from the document", private="Only you can see this message?")
 @app_commands.describe(section="Select a section from the document")
 @app_commands.autocomplete(section=section_autocomplete)
 async def lookup(interaction: discord.Interaction, section: str):
+#async def lookup(interaction: discord.Interaction, section: str, private: bool = False):
     """ Extracts and paginates the chosen section """
     section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
 
     if not section_text:
-        await interaction.response.send_message(f"'{section}' not found in the document.", ephemeral=True)
+        await interaction.response.send_message(f"'{section}' not found in the document.", ephemeral=False)
         return
 
     paginated = PaginatedText(section_text)
     
-    embed = discord.Embed(title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}", color=discord.Color.green())
+    embed = discord.Embed(title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}", color=discord.Color.green()
+        if is_glossary_result else discord.Color.blue())
     embed.description = paginated.pages[0]
     embed.set_footer(text=f"Page 1/{paginated.total_pages}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=False)
+    #await interaction.response.send_message(embed=embed, ephemeral=private)
 
     if paginated.total_pages > 1:
         current_page = 0
