@@ -29,26 +29,69 @@ class PaginatedText:
         self.total_pages = len(self.pages)
 
 
+import fitz  # PyMuPDF
+import logging
+
+logger = logging.getLogger(__name__)
+
+import fitz  # PyMuPDF
+import logging
+
+logger = logging.getLogger(__name__)
+
 def extract_sections(pdf_path, heading_size1, heading_size2, heading_font):
-    """ Extracts section titles from the PDF based on font size and font type """
+    """ Extracts section titles from the PDF based on font size and font type, 
+        with specific rules for scanning between 'Special Ability Structure' and 'Glossary of Terms'."""
+
     try:
         doc = fitz.open(pdf_path)
         extracted_titles = set()
+        tracking = False  # Flag to determine when to scan for heading_size1
+        use_heading_size2 = False  # Flag to switch to heading_size2 after "Glossary of Terms"
 
         for page in doc:
             blocks = page.get_text("dict")["blocks"]
             for block in blocks:
                 for line in block.get("lines", []):
+                    line_text = ""
+                    line_font = None
+                    line_size = None
+                    
                     for span in line.get("spans", []):
                         text = span["text"].strip()
                         font_size = round(span["size"])
                         font_name = span["font"]
 
-                        # Collect sections based on main headings
-                        if (font_size == heading_size1 or font_size == heading_size2) and heading_font in font_name:
-                            extracted_titles.add(text)
+                        # Concatenate spans to reconstruct full heading
+                        if line_text:
+                            line_text += " "  # Add space between spans
+                        line_text += text
+                        
+                        # Ensure font consistency
+                        if line_font is None:
+                            line_font = font_name
+                            line_size = font_size
+                        elif line_font != font_name or line_size != font_size:
+                            line_font = None  # Reset if inconsistency found
 
-        # Filter titles that are not empty and length is between 1 and 100 characters
+                    # Check for "Special Ability Structure" to start tracking
+                    if line_text == "Special Ability Structure" and font_size == 36 and "Arial" in font_name:
+                        tracking = True
+                        use_heading_size2 = False  # Reset the flag
+
+                    # Check for "Glossary of Terms" to switch to heading_size2
+                    if line_text == "Glossary of Terms" and font_size == 36 and "Arial" in font_name:
+                        use_heading_size2 = True  # From this point on, only use heading_size2
+                        continue  # Skip adding this as a heading
+
+                    # Add headings based on the current phase
+                    if tracking:
+                        if not use_heading_size2 and font_size == heading_size1 and heading_font in font_name:
+                            extracted_titles.add(line_text)
+                        elif use_heading_size2 and font_size == heading_size2 and heading_font in font_name:
+                            extracted_titles.add(line_text)
+
+        # Filter valid headings
         valid_titles = [title for title in extracted_titles if 1 <= len(title) <= 100]
         return sorted(valid_titles)  # Return sorted list of unique titles
 
