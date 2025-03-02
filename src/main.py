@@ -218,7 +218,10 @@ async def section_autocomplete(interaction: discord.Interaction, current: str):
 @app_commands.autocomplete(section=section_autocomplete)
 async def lookup(interaction: discord.Interaction, section: str):
 #async def lookup(interaction: discord.Interaction, section: str, private: bool = False):
-    """ Extracts and paginates the chosen section """
+    # **Defer the response to prevent timeout**
+    await interaction.response.defer(thinking = True)
+    
+    """ Extracts and paginates the chosen section """   
     section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
 
     if not section_text:
@@ -232,7 +235,11 @@ async def lookup(interaction: discord.Interaction, section: str):
     embed.description = paginated.pages[0]
     embed.set_footer(text=f"Page 1/{paginated.total_pages}")
 
-    await interaction.response.send_message(embed=embed, ephemeral=False)
+    """ The version correlated with the defer response above """
+    await interaction.followup.send(embed=embed, ephemeral=False)
+    """ The following version is the 'original' one """
+    #await interaction.response.send_message(embed=embed, ephemeral=False)
+    """ The following version is the one where the ephemeral can be steered by a second command parameter """
     #await interaction.response.send_message(embed=embed, ephemeral=private)
 
     if paginated.total_pages > 1:
@@ -265,7 +272,8 @@ async def lookup(interaction: discord.Interaction, section: str):
         view.add_item(prev_button)
         view.add_item(next_button)
 
-        await interaction.followup.send(view=view)
+        #await interaction.followup.send(view=view)
+        await interaction.edit_original_response(view=view)
 
 
 @bot.command(name='search')
