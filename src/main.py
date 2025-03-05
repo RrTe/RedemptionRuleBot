@@ -212,49 +212,51 @@ async def section_autocomplete(interaction: discord.Interaction, current: str):
     return [app_commands.Choice(name=title, value=title) for title in filtered_titles]
 
 
-@bot.tree.command(name="lookup", description="Lookup a section from the PDF")
 #@app_commands.describe(section="Select a section from the document", private="Only you can see this message?")
+#async def lookup(interaction: discord.Interaction, section: str, private: bool = False):
+@bot.tree.command(name="lookup", description="Lookup a section from the PDF")
 @app_commands.describe(section="Select a section from the document")
 @app_commands.autocomplete(section=section_autocomplete)
 async def lookup(interaction: discord.Interaction, section: str):
-#async def lookup(interaction: discord.Interaction, section: str, private: bool = False):
-    # **Defer the response to prevent timeout**
-    await interaction.response.defer(thinking = True)
-    
     """ Extracts and paginates the chosen section """   
-    section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial")
+    await interaction.response.defer(thinking=True)  # Prevents timeout
+
+    section_text, is_glossary_result = extract_section_with_specific_format(
+        pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial"
+    )
 
     if not section_text:
-        await interaction.response.send_message(f"'{section}' not found in the document.", ephemeral=False)
+        await interaction.followup.send(f"'{section}' not found in the document.", ephemeral=False)
         return
 
     paginated = PaginatedText(section_text)
-    
-    embed = discord.Embed(title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}", color=discord.Color.green()
-        if is_glossary_result else discord.Color.blue())
+
+    embed = discord.Embed(
+        title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}",
+        color=discord.Color.green() if is_glossary_result else discord.Color.blue()
+    )
     embed.description = paginated.pages[0]
     embed.set_footer(text=f"Page 1/{paginated.total_pages}")
 
-    """ The version correlated with the defer response above """
-    await interaction.followup.send(embed=embed, ephemeral=False)
-    """ The following version is the 'original' one """
-    #await interaction.response.send_message(embed=embed, ephemeral=False)
-    """ The following version is the one where the ephemeral can be steered by a second command parameter """
-    #await interaction.response.send_message(embed=embed, ephemeral=private)
+    message = await interaction.followup.send(embed=embed, ephemeral=False)
 
     if paginated.total_pages > 1:
         current_page = 0
+
+        # Create buttons
         prev_button = Button(label="◀️", style=discord.ButtonStyle.primary)
         next_button = Button(label="▶️", style=discord.ButtonStyle.primary)
 
+        # Define button callbacks
         async def prev_callback(interaction: discord.Interaction):
             nonlocal current_page
             if current_page > 0:
                 current_page -= 1
                 embed.description = paginated.pages[current_page]
                 embed.set_footer(text=f"Page {current_page + 1}/{paginated.total_pages}")
-                await interaction.response.edit_message(embed=embed)
-            await interaction.response.defer()
+                await interaction.response.edit_message(embed=embed, view=view)
+            else:
+                await interaction.response.defer()
 
         async def next_callback(interaction: discord.Interaction):
             nonlocal current_page
@@ -262,18 +264,32 @@ async def lookup(interaction: discord.Interaction, section: str):
                 current_page += 1
                 embed.description = paginated.pages[current_page]
                 embed.set_footer(text=f"Page {current_page + 1}/{paginated.total_pages}")
-                await interaction.response.edit_message(embed=embed)
-            await interaction.response.defer()
+                await interaction.response.edit_message(embed=embed, view=view)
+            else:
+                await interaction.response.defer()
 
+        # Assign button callbacks
         prev_button.callback = prev_callback
         next_button.callback = next_callback
 
-        view = View(timeout=60.0)
+        # Create a View instance with timeout
+        view = View(timeout=60.0)  # Set timeout to 60 seconds
         view.add_item(prev_button)
         view.add_item(next_button)
 
-        #await interaction.followup.send(view=view)
-        await interaction.edit_original_response(view=view)
+        # Define behavior when timeout happens
+        async def disable_buttons():
+            """Disables buttons after timeout and updates the message."""
+            for child in view.children:
+                if isinstance(child, Button):
+                    child.disabled = True  # Disable buttons
+            await message.edit(view=view)  # Update the message with disabled buttons
+
+        # Attach timeout behavior
+        view.on_timeout = disable_buttons  # Call this when timeout is reached
+
+        # Send the message with pagination buttons
+        await message.edit(view=view)
 
 
 @bot.command(name='search')
