@@ -3,28 +3,101 @@ from discord.ext import commands
 import fitz  # PyMuPDF
 import logging
 import os
+from discord import app_commands
 from discord.ui import Button, View
 from config import TOKEN
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
+pdf_path = "data/REG.pdf"
+
+# Global list to store extracted section titles
+section_titles = []
 
 
 class PaginatedText:
     def __init__(self, text, per_page=1000):
         self.text = text
         self.per_page = per_page
-        self.pages = [
-            text[i:i + per_page] for i in range(0, len(text), per_page)
-        ]
+        self.pages = [text[i:i + per_page] for i in range(0, len(text), per_page)]
         self.total_pages = len(self.pages)
+
+
+import fitz  # PyMuPDF
+import logging
+
+logger = logging.getLogger(__name__)
+
+import fitz  # PyMuPDF
+import logging
+
+logger = logging.getLogger(__name__)
+
+def extract_sections(pdf_path, heading_size1, heading_size2, heading_font):
+    """ Extracts section titles from the PDF based on font size and font type, 
+        with specific rules for scanning between 'Special Ability Structure' and 'Glossary of Terms'."""
+
+    try:
+        doc = fitz.open(pdf_path)
+        extracted_titles = set()
+        tracking = False  # Flag to determine when to scan for heading_size1
+        use_heading_size2 = False  # Flag to switch to heading_size2 after "Glossary of Terms"
+
+        for page in doc:
+            blocks = page.get_text("dict")["blocks"]
+            for block in blocks:
+                for line in block.get("lines", []):
+                    line_text = ""
+                    line_font = None
+                    line_size = None
+                    
+                    for span in line.get("spans", []):
+                        text = span["text"].strip()
+                        font_size = round(span["size"])
+                        font_name = span["font"]
+
+                        # Concatenate spans to reconstruct full heading
+                        if line_text:
+                            line_text += " "  # Add space between spans
+                        line_text += text
+                        
+                        # Ensure font consistency
+                        if line_font is None:
+                            line_font = font_name
+                            line_size = font_size
+                        elif line_font != font_name or line_size != font_size:
+                            line_font = None  # Reset if inconsistency found
+
+                    # Check for "Special Ability Structure" to start tracking
+                    if line_text == "Special Ability Structure" and font_size == 36 and "Arial" in font_name:
+                        tracking = True
+                        use_heading_size2 = False  # Reset the flag
+
+                    # Check for "Glossary of Terms" to switch to heading_size2
+                    if line_text == "Glossary of Terms" and font_size == 36 and "Arial" in font_name:
+                        use_heading_size2 = True  # From this point on, only use heading_size2
+                        continue  # Skip adding this as a heading
+
+                    # Add headings based on the current phase
+                    if tracking:
+                        if not use_heading_size2 and font_size == heading_size1 and heading_font in font_name:
+                            extracted_titles.add(line_text)
+                        elif use_heading_size2 and font_size == heading_size2 and heading_font in font_name:
+                            extracted_titles.add(line_text)
+
+        # Filter valid headings
+        valid_titles = [title for title in extracted_titles if 1 <= len(title) <= 100]
+        return sorted(valid_titles)  # Return sorted list of unique titles
+
+    except Exception as e:
+        logger.error(f"Error extracting sections: {str(e)}")
+        return []
 
 
 def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, heading_size2, heading_font):
@@ -36,18 +109,20 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
             section_text = []
             current_bullet_text = None
 
-            count = 0
             for page_num, page in enumerate(doc, start=1):
                 blocks = page.get_text("dict")["blocks"]
-                for block_num, block in enumerate(blocks, start=1):
-                    for line_num, line in enumerate(block.get("lines", []), start=1):
+                for block in blocks:
+                    for line in block.get("lines", []):
                         line_text = ""
-                        for span_num, span in enumerate(line.get("spans", []), start=1):
+                        for span in line.get("spans", []):
                             text = span["text"].strip()
                             font_size = span["size"]
                             font_name = span["font"]
                             rounded_font_size = round(font_size)
+                            
+                            #logger.info(f"Text: {main_heading} and {text}")
 
+                            # Check if we've found the main heading and match the desired font and size
                             if text == main_heading and rounded_font_size == heading_size and heading_font in font_name:
                                 found_main_heading = True
                                 section_text.append(text)
@@ -63,9 +138,8 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
                                     continue
 
                                 if rounded_font_size == 14:  # Assuming 14 is the subheading font size
-                                    text = f"**{text}**"  # Apply bold formatting
+                                    text = f"**{text}**"  # Apply bold formatting for subheadings
 
-                                #logger.info(f"Count: '{count}' Line text before is '{line_text}' + Current Bullet text is '{current_bullet_text}''")
                                 if current_bullet_text:
                                     if text:
                                         combined_text = f"{current_bullet_text} {text}"
@@ -73,8 +147,6 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
                                         current_bullet_text = None
                                 else:
                                     line_text += text + " "
-                                #logger.info(f"Count: '{count}' Line text after is '{line_text}'")
-                            count += 1
 
                         if line_text:
                             section_text.append(line_text.strip())
@@ -100,17 +172,124 @@ def extract_section_with_specific_format(pdf_path, main_heading, heading_size1, 
 
 @bot.event
 async def on_ready():
+    """ Load section titles on bot startup """
+    global section_titles
     logger.info(f'Bot is ready as {bot.user}')
-    logger.info(
-        f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands'
+    
+    # Generate the bot's invite link dynamically
+    permissions = discord.Permissions(send_messages=True, embed_links=True, attach_files=True, use_application_commands=True)
+    invite_link = discord.utils.oauth_url(bot.user.id, permissions=permissions)
+    logger.info(f'Invite link: {invite_link}')
+
+    # Extract section titles from the document
+    section_titles = extract_sections(pdf_path, heading_size1=30, heading_size2=14, heading_font="Arial")
+    logger.info(f"Extracted {len(section_titles)} section titles")
+
+    # Ensure the section titles are successfully loaded
+    if not section_titles:
+        logger.error("No section titles extracted. Please check the PDF file.")
+    
+    # Sync tree commands
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f"Synced {len(synced)} commands.")
+    except Exception as e:
+        logger.error(f"Error syncing commands: {str(e)}")
+
+
+async def section_autocomplete(interaction: discord.Interaction, current: str):
+    """ Autocomplete function for section selection """
+    # Log and debug
+    logger.info(f"Autocomplete triggered with query: {current}")
+
+    # Filter section titles based on the current input and limit to 25 results
+    filtered_titles = [title for title in section_titles if current.lower() in title.lower()][:25]
+    
+    # If there are no matches, log it for debugging purposes
+    if not filtered_titles:
+        logger.info("No matching titles found for autocomplete.")
+
+    return [app_commands.Choice(name=title, value=title) for title in filtered_titles]
+
+
+#@app_commands.describe(section="Select a section from the document", private="Only you can see this message?")
+#async def lookup(interaction: discord.Interaction, section: str, private: bool = False):
+@bot.tree.command(name="lookup", description="Lookup a section from the PDF")
+@app_commands.describe(section="Select a section from the document")
+@app_commands.autocomplete(section=section_autocomplete)
+async def lookup(interaction: discord.Interaction, section: str):
+    """ Extracts and paginates the chosen section """   
+    await interaction.response.defer(thinking=True)  # Prevents timeout
+
+    section_text, is_glossary_result = extract_section_with_specific_format(
+        pdf_path, section, heading_size1=30, heading_size2=14, heading_font="Arial"
     )
 
+    if not section_text:
+        await interaction.followup.send(f"'{section}' not found in the document.", ephemeral=False)
+        return
 
-@bot.tree.command(name="invite", description="Get the bot's invite link")
-async def invite(interaction: discord.Interaction):
-    invite_link = f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands"
-    await interaction.response.send_message(
-        f"Invite me to your server using this link:\n{invite_link}")
+    paginated = PaginatedText(section_text)
+
+    embed = discord.Embed(
+        title=f"{'Glossary' if is_glossary_result else 'Section'}: {section}",
+        color=discord.Color.green() if is_glossary_result else discord.Color.blue()
+    )
+    embed.description = paginated.pages[0]
+    embed.set_footer(text=f"Page 1/{paginated.total_pages}")
+
+    message = await interaction.followup.send(embed=embed, ephemeral=False)
+
+    if paginated.total_pages > 1:
+        current_page = 0
+
+        # Create buttons
+        prev_button = Button(label="◀️", style=discord.ButtonStyle.primary)
+        next_button = Button(label="▶️", style=discord.ButtonStyle.primary)
+
+        # Define button callbacks
+        async def prev_callback(interaction: discord.Interaction):
+            nonlocal current_page
+            if current_page > 0:
+                current_page -= 1
+                embed.description = paginated.pages[current_page]
+                embed.set_footer(text=f"Page {current_page + 1}/{paginated.total_pages}")
+                await interaction.response.edit_message(embed=embed, view=view)
+            else:
+                await interaction.response.defer()
+
+        async def next_callback(interaction: discord.Interaction):
+            nonlocal current_page
+            if current_page < paginated.total_pages - 1:
+                current_page += 1
+                embed.description = paginated.pages[current_page]
+                embed.set_footer(text=f"Page {current_page + 1}/{paginated.total_pages}")
+                await interaction.response.edit_message(embed=embed, view=view)
+            else:
+                await interaction.response.defer()
+
+        # Assign button callbacks
+        prev_button.callback = prev_callback
+        next_button.callback = next_callback
+
+        # Create a View instance with timeout
+        view = View(timeout=60.0)  # Set timeout to 60 seconds
+        view.add_item(prev_button)
+        view.add_item(next_button)
+
+        # Define behavior when timeout happens
+        async def disable_buttons():
+            """Disables buttons after timeout and updates the message."""
+            for child in view.children:
+                if isinstance(child, Button):
+                    child.disabled = True  # Disable buttons
+            await message.edit(view=view)  # Update the message with disabled buttons
+
+        # Attach timeout behavior
+        view.on_timeout = disable_buttons  # Call this when timeout is reached
+
+        # Send the message with pagination buttons
+        await message.edit(view=view)
 
 
 @bot.command(name='search')
@@ -123,8 +302,7 @@ async def search_pdf(ctx,
     pdf_path = "data/REG_PDF_9.0.0.pdf"
 
     #logger.info(f"Searching for '{keyword}' in sections and glossary")
-    section_text, is_glossary_result = extract_section_with_specific_format(
-        pdf_path, keyword, section_size, glossary_size, heading_font)
+    section_text, is_glossary_result = extract_section_with_specific_format(pdf_path, keyword, section_size, glossary_size, heading_font)
 
     if not section_text:
         await ctx.send(f"'{keyword}' not found in sections or glossary.")
@@ -183,15 +361,13 @@ async def search_pdf(ctx,
         # Edit the message to add the buttons
         await message.edit(view=view)
 
-
+        
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
 if not token:
     token = TOKEN
     if not token:
-        logger.error(
-            "No Discord token found. Please set the DISCORD_TOKEN environment variable."
-        )
+        logger.error("No Discord token found. Please set the DISCORD_TOKEN environment variable.")
         exit(1)
 
 bot.run(token)
