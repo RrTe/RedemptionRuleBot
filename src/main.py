@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
-pdf_path = "data/REG_PDF_9.0.0.pdf"
+pdf_path = "data/REG.pdf"
 
 # Global list to store extracted section titles
 section_titles = []
