@@ -1,103 +1,122 @@
 # RedemptionRuleBot
 
-A Discord bot that extracts and searches specific sections within a PDF document based on user-provided keywords.
+A Discord bot that extracts and displays sections from one or more PDF documents using slash commands and autocomplete, with pagination support for long content.
 
-## Features
+## ✨ Features
 
-- Searches for sections in a PDF by main heading.
-- Supports pagination for lengthy sections.
-- Differentiates between regular sections and glossary entries.
+- ✅ Reads and indexes **multiple PDF documents**.
+- 🔍 **/lookup** command with autocomplete to quickly find sections.
+- 🧾 Distinguishes **sections vs. glossary entries** based on heading.
+- 📄 Displays results in **paginated Discord embeds**.
+- 🧠 Remembers user position with persistent pagination state.
+- 💠 Slash and prefix (`!search`) command support.
 
-## Prerequisites
+## 🛠️ Prerequisites
 
 - Python 3.9 or higher
-- A Discord bot token. You can create one by following the [Discord Developer Portal](https://discord.com/developers/docs/intro).
+- A Discord bot token (create one via the [Discord Developer Portal](https://discord.com/developers/docs/intro)).
 
-## Installation
+## 🚀 Installation
 
-1. Clone this repository:
+1. **Clone the repository:**
 
    ```bash
    git clone https://github.com/yourusername/discord-pdf-search-bot.git
-   ```
-
-2. Navigate to the project directory:
-
-   ```bash
    cd discord-pdf-search-bot
    ```
 
-3. Install the required dependencies:
+2. **Install dependencies:**
 
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Set Up Environment Variables:
+3. **Set your bot token:**
 
-   Create a .env file in the root directory of the project and add your Discord bot token:
+   Either:
 
-   ```bash
-   DISCORD_TOKEN=your_discord_bot_token_here
-   ```
-   
-   Alternatively, you can set the environment variable directly in your system or import it from a config.py file.
+   - Create a `.env` file with:
+     ```bash
+     DISCORD_TOKEN=your_token_here
+     ```
 
-5. Prepare the PDF Document:
+   Or:
 
-   Place the current version of the Redemption Exegesis Guide (z.B. REG_PDF_9.0.0.pdf) file into the data directory. If the directory doesn't exist, create it:
+   - Set it directly in `config.py` as:
+     ```python
+     TOKEN = "your_token_here"
+     ```
 
-   ```bash
-   mkdir data
-   ```
-   
-   Then, move your PDF file into this directory.
+4. **Prepare your PDFs:**
 
-## Usage
+   - Place your documents (e.g., `REG.pdf`, `ORDIR.pdf`) in a `data/` folder:
 
-To start the bot, run:
+     ```bash
+     mkdir -p data
+     mv your_files.pdf data/
+     ```
 
-   ```bash
-   python bot.py
-   ```
+   - Ensure filenames match those defined in the `pdfs` dictionary in the bot code.
 
-Once the bot is running, you can use the following commands in your Discord server:
+## 🥮 Usage
 
-   ```bash
-   !search <keyword>: Searches for the specified keyword in the PDF and displays the relevant section or glossary entry.
-   ```
+Start the bot:
 
-   Example:
+```bash
+python bot.py
+```
 
-   ```bash
-   !search Negate
-   ```
+### Slash Command: `/lookup`
 
-   This command will search for the Negate section in the PDF and display the corresponding section or glossary entry in a paginated embed.
+- Autocomplete lets users select any section heading from all loaded documents.
+- The result appears in an embed with pagination controls.
 
-## Bot Commands
+### Text Command: `!search`
 
-   ```bash
-   !invite: Provides the invite link to add the bot to other servers.
-   ```
+```bash
+!search <doc> <keyword>
+```
 
-## Code Overview
+Example:
 
-The bot is built using the discord.py library and utilizes the PyMuPDF library (fitz) to handle PDF processing. The main components include:
+```bash
+!search REG Negate
+```
 
-    PDF Extraction: The extract_section_with_specific_format function opens the PDF and searches for sections matching the given keyword based on font size and name.
-    Pagination: The PaginatedText class divides lengthy text into smaller chunks for paginated display within Discord embeds.
-    Discord Commands: The bot defines commands such as !search to handle user interactions and display results.
+### Optional Command: `!invite`
 
-## Logging
+If implemented, this would return the bot's invite URL.
 
-The bot uses Python's built-in logging module to provide informative logs during operation. Logs include details about the bot's status and any errors encountered during PDF processing.
+## ⚙️ Configuration
 
-## Contributing
+All PDF processing settings (e.g., heading font size, font name) are defined in:
 
-Contributions are welcome! If you'd like to contribute, please fork the repository and create a pull request with your changes.
+- `extract_sections(...)`
+- `extract_section_with_specific_format(...)`
 
-## Acknowledgments
+These can be customized if your PDFs use different formatting.
 
-    discord.py: An API wrapper for Discord written in Python.
-    PyMuPDF: A Python binding for MuPDF, a lightweight PDF viewer.
+## 🤩 Code Overview
+
+- **extract\_sections()** – Extracts all headings for autocomplete.
+- **extract\_section\_with\_specific\_format()** – Extracts full content of a matched heading.
+- **PaginatedText** – Splits long text for Discord-friendly pagination.
+- **PersistentPagination** – Handles interactive buttons for section navigation.
+- **Discord Commands** – Supports `/lookup` (slash) and `!search` (text).
+
+## 🩽 Logging
+
+The bot uses Python’s `logging` module to display runtime info:
+
+- Bot startup
+- PDF processing issues
+- Command execution
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork and submit a pull request.
+
+## 🙏 Acknowledgments
+
+- [discord.py](https://discordpy.readthedocs.io/en/stable/)
+- [PyMuPDF (fitz)](https://pymupdf.readthedocs.io/en/latest/)
